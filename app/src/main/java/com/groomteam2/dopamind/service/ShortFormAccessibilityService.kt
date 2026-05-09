@@ -11,6 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 /**
@@ -68,9 +69,21 @@ class ShortFormAccessibilityService : AccessibilityService() {
             ScrollEventBus.publish(ScrollEvent(System.currentTimeMillis(), pkg))
         }
 
-        // 2) 활성 챌린지 대상 앱 재진입 감지 → 챌린지 실패.
+        // 2) 인스타/유튜브/틱톡 등 대상 앱 진입 감지 → 타이머 인트로 팝업 트리거.
+        //    이미 동작 중인 타이머가 있으면 트리거하지 않음 (재진입 무시).
+        if (ev.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg in TARGET_PACKAGES) {
+            scope.launch { maybeStartTimerIntro() }
+        }
+
+        // 3) 활성 챌린지 대상 앱 재진입 감지 → 챌린지 실패.
         //    어떤 이벤트든 패키지명만 있으면 판단 가능.
         scope.launch { checkChallengeFailure(pkg) }
+    }
+
+    private suspend fun maybeStartTimerIntro() {
+        val endAt = ServiceLocator.userPrefs.activeTimerEndAt.firstOrNull() ?: 0L
+        if (endAt > System.currentTimeMillis()) return // 타이머 동작 중 — 인트로 띄우지 않음
+        TimerService.start(applicationContext, TimerService.ACTION_SHOW_INTRO)
     }
 
     private suspend fun checkChallengeFailure(currentPkg: String) {
@@ -90,5 +103,14 @@ class ShortFormAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
+    }
+
+    companion object {
+        private val TARGET_PACKAGES = setOf(
+            "com.instagram.android",
+            "com.google.android.youtube",
+            "com.zhiliaoapp.musically",
+            "com.ss.android.ugc.trill",
+        )
     }
 }

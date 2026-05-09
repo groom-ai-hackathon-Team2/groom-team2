@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -210,12 +211,18 @@ private fun AvgIntervalCard(state: ShortsStatsUiState, modifier: Modifier = Modi
 }
 
 /**
- * 0..GAUGE_MAX_MS 구간을 가로 막대로 표현, 800ms 위치에 빨간 임계치 라인 표시.
+ * 0..GAUGE_MAX_MS 구간을 가로 막대로 표현, 800ms 위치에 빨간 임계치 마커 표시.
+ *
+ * 레이아웃: 외곽 트랙 박스 안에
+ *   - 평균값 막대(왼쪽 정렬, fillMaxWidth(ratio))
+ *   - 임계치 마커: fillMaxWidth(thresholdRatio) 박스의 오른쪽 끝에 2dp 빨간 라인
+ *   두 자식 모두 트랙 박스 위에 겹쳐서 그려짐.
  */
 @Composable
 private fun IntervalGauge(avgMs: Long) {
     val ratio = (avgMs.toFloat() / GAUGE_MAX_MS).coerceIn(0f, 1f)
     val thresholdRatio = (ZOMBIE_THRESHOLD_MS.toFloat() / GAUGE_MAX_MS).coerceIn(0f, 1f)
+    val isZombie = avgMs in 1L until ZOMBIE_THRESHOLD_MS
     Box(
         Modifier
             .fillMaxWidth()
@@ -223,20 +230,22 @@ private fun IntervalGauge(avgMs: Long) {
             .clip(RoundedCornerShape(5.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        // 평균값 막대.
         Box(
             Modifier
                 .fillMaxWidth(ratio)
-                .height(10.dp)
-                .background(if (avgMs < ZOMBIE_THRESHOLD_MS) BrandWarning else BrandPurple),
+                .fillMaxHeight()
+                .background(if (isZombie) BrandWarning else BrandPurple),
         )
-        // 임계치(800ms) 위치를 빨간 세로선으로 표시.
-        Row(Modifier.fillMaxWidth().height(10.dp)) {
-            Spacer(Modifier.fillMaxWidth(thresholdRatio))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(thresholdRatio)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
             Box(
                 Modifier
                     .width(2.dp)
-                    .height(10.dp)
+                    .fillMaxHeight()
                     .background(Color(0xFFFF5252)),
             )
         }

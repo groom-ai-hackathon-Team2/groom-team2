@@ -1,5 +1,6 @@
 package com.groomteam2.dopamind.data.repo
 
+import com.groomteam2.dopamind.analyzer.ActiveShortsSessionRegistry
 import com.groomteam2.dopamind.analyzer.VulnerableTimeLearner
 import com.groomteam2.dopamind.data.db.HourlySessionDuration
 import com.groomteam2.dopamind.data.db.HourlyViewCount
@@ -8,9 +9,13 @@ import com.groomteam2.dopamind.data.db.ShortsSessionLog
 import com.groomteam2.dopamind.data.db.ShortsSessionLogDao
 import com.groomteam2.dopamind.data.db.ShortsViewLog
 import com.groomteam2.dopamind.data.db.ShortsViewLogDao
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -70,8 +75,38 @@ class ShortsStatsRepository(
             .map { list -> list.associate { it.packageName to it.count } }
 
     // ── 카드 2: 시청 시간 ─────────────────────────────────────────
-    fun getTodayWatchTimeSec(): Flow<Long> = sessionDao.sumDurationSecSince(startOfTodayMs())
-    fun getWeekWatchTimeSec(): Flow<Long> = sessionDao.sumDurationSecSince(startOfWeekMs())
+    /**
+     * 오늘 시청 시간 = (DB 의 완료 세션 합계) + (현재 진행 중 세션의 실시간 경과).
+     * 진행 중 세션이 있으면 1초 ticker 로 흐르는 시간을 그대로 반영해 UI 가 매초 갱신된다.
+     */
+    fun getTodayWatchTimeSec(): Flow<Long> = liveWatchTimeSec(startOfTodayMs())
+    fun getWeekWatchTimeSec(): Flow<Long> = liveWatchTimeSec(startOfWeekMs())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun liveWatchTimeSec(sinceMs: Long): Flow<Long> =
+        ActiveShortsSessionRegistry.flow.flatMapLatest { active ->
+            if (active.isEmpty()) {
+                // 진행 중 세션 없음 — DB 값만 그대로 흘려보냄.
+                sessionDao.sumDurationSecSince(sinceMs)
+            } else {
+                // 진행 중 세션 있음 — DB 값 + 현재 시각 기반 실시간 경과를 1초마다 합산.
+                combine(sessionDao.sumDurationSecSince(sinceMs), tickerFlow(1_000L)) { stored, _ ->
+                    val now = System.currentTimeMillis()
+                    val ongoing = active.values.sumOf { s ->
+                        val from = maxOf(s.startMs, sinceMs)
+                        ((now - from) / 1000L).coerceAtLeast(0L)
+                    }
+                    stored + ongoing
+                }
+            }
+        }
+
+    private fun tickerFlow(periodMs: Long): Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            delay(periodMs)
+        }
+    }
 
     /** 어제 대비 증감(+/-%) 표기를 위해 어제 합계도 노출. */
     fun getYesterdayWatchTimeSec(): Flow<Long> {

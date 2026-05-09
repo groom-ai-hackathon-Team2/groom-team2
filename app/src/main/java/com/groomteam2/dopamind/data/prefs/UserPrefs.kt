@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -41,8 +43,27 @@ class UserPrefs(private val context: Context) {
         FloatArray(24) { i -> prefs[hourKey(i)] ?: 0f }
     }
 
+    // ── 앱 타이머 ────────────────────────────────────────────────
+    // 사용자가 메인에서 설정하는 목표 시간(분). 인스타/유튜브 진입 시 이 값으로 카운트다운 시작.
+    val goalTimerMinutes: Flow<Int> = store.data.map { it[KEY_GOAL_TIMER_MIN] ?: DEFAULT_GOAL_MIN }
+
+    suspend fun setGoalTimerMinutes(value: Int) {
+        store.edit { it[KEY_GOAL_TIMER_MIN] = value }
+    }
+
+    // 현재 진행 중인 타이머의 만료 시각 (epoch ms). 0 이면 없음.
+    val activeTimerEndAt: Flow<Long> = store.data.map { it[KEY_TIMER_END_AT] ?: 0L }
+
+    suspend fun setActiveTimerEndAt(value: Long) {
+        store.edit { it[KEY_TIMER_END_AT] = value }
+    }
+
     companion object {
+        const val DEFAULT_GOAL_MIN = 5
+
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+        private val KEY_GOAL_TIMER_MIN = intPreferencesKey("goal_timer_min")
+        private val KEY_TIMER_END_AT = longPreferencesKey("timer_end_at")
         private fun hourKey(hour: Int): Preferences.Key<Float> =
             floatPreferencesKey("vulnerable_$hour")
     }

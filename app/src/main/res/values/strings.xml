@@ -50,8 +50,6 @@
     <string name="challenge_failed">아쉬워요. 챌린지 실패 😭</string>
     <string name="challenge_succeeded">잘했어요! +%1$d 포인트 획득 🎉</string>
 
-<<<<<<< Updated upstream
-=======
     <!-- 앱 타이머 -->
     <string name="timer_setting_title">앱 타이머 목표 시간</string>
     <string name="timer_setting_caption">인스타·유튜브 진입 시 이 시간만큼 카운트다운합니다</string>
@@ -92,8 +90,8 @@
     <string name="shorts_stats_minutes">%1$d분</string>
     <string name="shorts_stats_hours_minutes">%1$d시간 %2$d분</string>
 
->>>>>>> Stashed changes
     <!-- 알림 채널 -->
     <string name="notif_channel_overlay">코치 오버레이</string>
     <string name="notif_channel_challenge">챌린지 진행</string>
+    <string name="notif_channel_timer">앱 타이머</string>
 </resources>

@@ -74,6 +74,19 @@
                 android:value="digital_wellbeing_overlay" />
         </service>
 
+        <!--
+          앱 타이머 인트로/플로팅 버블/만료 팝업을 띄우는 포그라운드 서비스.
+          OverlayService 와 별개로 동작 — 서로 다른 트리거(타이머 vs 좀비 감지).
+        -->
+        <service
+            android:name=".service.TimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="digital_wellbeing_overlay" />
+        </service>
+
     </application>
 
 </manifest>
