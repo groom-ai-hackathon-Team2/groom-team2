@@ -33,10 +33,15 @@ import com.groomteam2.dopamind.ui.theme.BrandPurple
  */
 @Composable
 fun TimerIntroView(
-    minutes: Int,
+    seconds: Int,
     onStart: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val durationLabel = when {
+        seconds < 60 -> stringResource(R.string.timer_seconds_format, seconds)
+        seconds % 3600 == 0 -> stringResource(R.string.timer_hours_format, seconds / 3600)
+        else -> stringResource(R.string.timer_minutes_format, seconds / 60)
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -64,7 +69,7 @@ fun TimerIntroView(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.timer_intro_minutes, minutes),
+                text = stringResource(R.string.timer_intro_duration, durationLabel),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))

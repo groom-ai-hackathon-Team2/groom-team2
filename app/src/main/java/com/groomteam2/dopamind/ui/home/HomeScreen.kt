@@ -1,6 +1,12 @@
 package com.groomteam2.dopamind.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -17,8 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.platform.LocalContext
 import com.groomteam2.dopamind.service.TimerService
 import androidx.compose.material3.Card
@@ -32,6 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.groomteam2.dopamind.R
+import com.groomteam2.dopamind.data.prefs.UserPrefs
 import com.groomteam2.dopamind.ui.theme.BrandPurple
 import com.groomteam2.dopamind.ui.theme.BrandSuccess
 import com.groomteam2.dopamind.ui.theme.BrandWarning
@@ -134,6 +148,11 @@ fun HomeScreen(
                 )
             }
             Spacer(Modifier.height(24.dp))
+            TimerSettingSection(
+                currentSeconds = state.goalTimerSeconds,
+                onPick = { vm.setGoalTimerSeconds(it) },
+            )
+            Spacer(Modifier.height(24.dp))
             Text("시간대별 위험도", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             VulnerableBars(state.vulnerableScores, state.currentHour)
@@ -200,6 +219,114 @@ private fun VulnerableBanner() {
             fontWeight = FontWeight.Bold,
         )
     }
+}
+
+/**
+ * 앱 타이머 목표 시간 설정 섹션.
+ * - 카드를 누르면 30초~1시간 프리셋이 위→아래로 펼쳐짐(AnimatedVisibility).
+ * - 항목을 누르면 즉시 저장 + 패널 닫힘.
+ */
+@Composable
+private fun TimerSettingSection(
+    currentSeconds: Int,
+    onPick: (Int) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            // 헤더 — 누르면 펼침/접힘 토글.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(16.dp),
+            ) {
+                Icon(
+                    Icons.Default.Timer,
+                    contentDescription = null,
+                    tint = BrandPurple,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.timer_setting_title),
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        stringResource(
+                            R.string.timer_setting_current,
+                            formatSeconds(currentSeconds),
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                    )
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                )
+            }
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(Modifier.padding(bottom = 8.dp)) {
+                    UserPrefs.GOAL_PRESETS_SEC.forEach { sec ->
+                        TimerPresetRow(
+                            label = formatSeconds(sec),
+                            selected = sec == currentSeconds,
+                            onClick = {
+                                onPick(sec)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerPresetRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .background(
+                if (selected) BrandPurple.copy(alpha = 0.18f)
+                else Color.Transparent
+            )
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        Text(
+            label,
+            color = if (selected) BrandPurple else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Text("선택됨", color = BrandPurple, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun formatSeconds(sec: Int): String = when {
+    sec < 60 -> stringResource(R.string.timer_seconds_format, sec)
+    sec % 3600 == 0 -> stringResource(R.string.timer_hours_format, sec / 3600)
+    else -> stringResource(R.string.timer_minutes_format, sec / 60)
 }
 
 /**

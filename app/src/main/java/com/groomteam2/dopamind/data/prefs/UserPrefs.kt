@@ -45,11 +45,16 @@ class UserPrefs(private val context: Context) {
     }
 
     // ── 앱 타이머 ────────────────────────────────────────────────
-    // 사용자가 메인에서 설정하는 목표 시간(분). 인스타/유튜브 진입 시 이 값으로 카운트다운 시작.
-    val goalTimerMinutes: Flow<Int> = store.data.map { it[KEY_GOAL_TIMER_MIN] ?: DEFAULT_GOAL_MIN }
+    // 사용자가 메인에서 설정하는 목표 시간(초). 30..3600 사이의 프리셋 중 선택.
+    // 기존 분 단위 키와 공존 — 새 키가 비어 있으면 분 키를 ×60 해서 마이그레이션.
+    val goalTimerSeconds: Flow<Int> = store.data.map { prefs ->
+        prefs[KEY_GOAL_TIMER_SEC]
+            ?: prefs[KEY_GOAL_TIMER_MIN]?.let { it * 60 }
+            ?: DEFAULT_GOAL_SEC
+    }
 
-    suspend fun setGoalTimerMinutes(value: Int) {
-        store.edit { it[KEY_GOAL_TIMER_MIN] = value }
+    suspend fun setGoalTimerSeconds(value: Int) {
+        store.edit { it[KEY_GOAL_TIMER_SEC] = value }
     }
 
     // 현재 진행 중인 타이머의 만료 시각 (epoch ms). 0 이면 없음.
@@ -87,10 +92,13 @@ class UserPrefs(private val context: Context) {
     }
 
     companion object {
-        const val DEFAULT_GOAL_MIN = 5
+        const val DEFAULT_GOAL_SEC = 300 // 5분
+        /** 사용자가 선택할 수 있는 타이머 프리셋(초 단위). 30초 ~ 1시간. */
+        val GOAL_PRESETS_SEC: List<Int> = listOf(30, 60, 180, 300, 600, 900, 1800, 3600)
 
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         private val KEY_GOAL_TIMER_MIN = intPreferencesKey("goal_timer_min")
+        private val KEY_GOAL_TIMER_SEC = intPreferencesKey("goal_timer_sec")
         private val KEY_TIMER_END_AT = longPreferencesKey("timer_end_at")
         private val KEY_PLAN_TIER = stringPreferencesKey("plan_tier")
         private val KEY_LAST_REPORT_TEXT = stringPreferencesKey("last_report_text")

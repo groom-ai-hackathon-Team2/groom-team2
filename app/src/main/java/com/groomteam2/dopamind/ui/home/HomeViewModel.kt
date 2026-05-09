@@ -36,8 +36,8 @@ class HomeViewModel : ViewModel() {
         pointRepo.earnedToday(),
         challengeRepo.successCountToday(),
         learner.scoresFlow,
-        userPrefs.goalTimerMinutes,
-    ) { balance, earnedToday, successToday, scores, goalMinutes ->
+        userPrefs.goalTimerSeconds,
+    ) { balance, earnedToday, successToday, scores, goalSeconds ->
         val now = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         HomeState(
             totalPoints = balance,
@@ -46,7 +46,7 @@ class HomeViewModel : ViewModel() {
             isVulnerableNow = learner.isVulnerableNow(now),
             currentHour = now,
             vulnerableScores = scores.toList(),
-            goalTimerMinutes = goalMinutes,
+            goalTimerSeconds = goalSeconds,
         )
     }
 
@@ -94,8 +94,8 @@ class HomeViewModel : ViewModel() {
         initialValue = ShortsStatsUiState(),
     )
 
-    fun setGoalTimerMinutes(minutes: Int) {
-        viewModelScope.launch { userPrefs.setGoalTimerMinutes(minutes) }
+    fun setGoalTimerSeconds(seconds: Int) {
+        viewModelScope.launch { userPrefs.setGoalTimerSeconds(seconds) }
     }
 }
 
@@ -106,7 +106,7 @@ data class HomeState(
     val isVulnerableNow: Boolean = false,
     val currentHour: Int = 0,
     val vulnerableScores: List<Float> = List(24) { 0f },
-    val goalTimerMinutes: Int = UserPrefs.DEFAULT_GOAL_MIN,
+    val goalTimerSeconds: Int = UserPrefs.DEFAULT_GOAL_SEC,
     val activeTimerEndAt: Long = 0L,
 )
 

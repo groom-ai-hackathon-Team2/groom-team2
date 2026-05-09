@@ -107,11 +107,11 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     private fun showIntro() {
         if (introView != null) return
         lifecycleScope.launch {
-            val minutes = ServiceLocator.userPrefs.goalTimerMinutes.firstOrNull()
-                ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
+            val seconds = ServiceLocator.userPrefs.goalTimerSeconds.firstOrNull()
+                ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_SEC
             val view = createComposeView {
                 TimerIntroView(
-                    minutes = minutes,
+                    seconds = seconds,
                     onStart = { start(applicationContext, ACTION_START_TIMER) },
                     onCancel = { start(applicationContext, ACTION_DISMISS) },
                 )
@@ -126,8 +126,8 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
 
         lifecycleScope.launch {
             val prefs = ServiceLocator.userPrefs
-            val minutes = prefs.goalTimerMinutes.firstOrNull() ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
-            val endAt = System.currentTimeMillis() + minutes * 60_000L
+            val seconds = prefs.goalTimerSeconds.firstOrNull() ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_SEC
+            val endAt = System.currentTimeMillis() + seconds * 1_000L
             prefs.setActiveTimerEndAt(endAt)
             attachBubble()
             launchCountdown(endAt)
@@ -152,8 +152,9 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
 
         lifecycleScope.launch {
             val prefs = ServiceLocator.userPrefs
-            val minutes = prefs.goalTimerMinutes.firstOrNull() ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
-            val reward = minutes * REWARD_PER_MINUTE
+            val seconds = prefs.goalTimerSeconds.firstOrNull() ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_SEC
+            // 30초 같은 짧은 타이머도 최소 1포인트는 보장.
+            val reward = ((seconds * REWARD_PER_MINUTE) / 60).coerceAtLeast(1)
             ServiceLocator.pointRepository.add(
                 delta = reward,
                 reason = "timer_complete",

@@ -53,9 +53,12 @@
     <!-- 앱 타이머 -->
     <string name="timer_setting_title">앱 타이머 목표 시간</string>
     <string name="timer_setting_caption">인스타·유튜브 진입 시 이 시간만큼 카운트다운합니다</string>
+    <string name="timer_setting_current">현재 설정: %1$s</string>
     <string name="timer_minutes_format">%1$d분</string>
+    <string name="timer_seconds_format">%1$d초</string>
+    <string name="timer_hours_format">%1$d시간</string>
     <string name="timer_intro_title">지금부터 앱 타이머가 시작됩니다</string>
-    <string name="timer_intro_minutes">%1$d분 동안 사용 시간을 추적할게요</string>
+    <string name="timer_intro_duration">%1$s 동안 사용 시간을 추적할게요</string>
     <string name="timer_intro_start">시작하기</string>
     <string name="timer_intro_cancel">취소</string>
     <string name="timer_complete_title">수고했어요!</string>
