@@ -1,6 +1,7 @@
 package com.groomteam2.dopamind.service
 
 import android.accessibilityservice.AccessibilityService
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.groomteam2.dopamind.analyzer.ScrollEvent
 import com.groomteam2.dopamind.analyzer.ScrollEventBus
@@ -33,6 +34,12 @@ class ShortFormAccessibilityService : AccessibilityService() {
     private var analysisJob: Job? = null
     private var challengeWatchJob: Job? = null
 
+    /**
+     * YouTube 메인 Shorts 페이저의 마지막 카운트 시각 (디바운스용).
+     * 단일 페이저라 패키지 1개에 단일 Long 으로 충분.
+     */
+    @Volatile private var lastYoutubeScrollCountedMs: Long = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
 
@@ -64,8 +71,20 @@ class ShortFormAccessibilityService : AccessibilityService() {
         val ev = event ?: return
         val pkg = ev.packageName?.toString() ?: return
 
-        // 1) 스크롤 이벤트면 분석 버스로 흘려보냄.
-        if (ev.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+        // [PROBE] 진단 로깅 — Shorts/Reels 메인 페이저 vs 댓글 리스트의 className/fromIndex 패턴 확인용.
+        // 실측이 끝나면 import 와 함께 제거.
+        if (ev.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED ||
+            ev.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+        ) {
+            val type = if (ev.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) "SCROLL" else "WINDOW"
+            Log.d(
+                "DopaProbe",
+                "$type pkg=$pkg cls=${ev.className} from=${ev.fromIndex} to=${ev.toIndex} cnt=${ev.itemCount}"
+            )
+        }
+
+        // 1) 스크롤 이벤트 — 패키지별 필터 적용 후 분석 버스로 흘려보냄.
+        if (ev.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED && shouldCountScroll(ev, pkg)) {
             ScrollEventBus.publish(ScrollEvent(System.currentTimeMillis(), pkg))
         }
 
@@ -78,6 +97,30 @@ class ShortFormAccessibilityService : AccessibilityService() {
         // 3) 활성 챌린지 대상 앱 재진입 감지 → 챌린지 실패.
         //    어떤 이벤트든 패키지명만 있으면 판단 가능.
         scope.launch { checkChallengeFailure(pkg) }
+    }
+
+    /**
+     * 패키지별 스크롤 카운트 채택 여부.
+     *
+     * - YouTube: 실측 결과 메인 Shorts 페이저만 from=to=cnt=-1 (인덱스 미제공),
+     *   댓글 RecyclerView 는 정상 인덱스(0+, cnt>0)를 발행. 이 차이로 댓글 차단 가능.
+     *   추가로 한 스와이프의 잔여 이벤트(100~200ms 간격으로 3~4개) 가 있어 500ms 디바운스 적용.
+     * - Instagram / TikTok: 인덱스로 메인/댓글 구별이 불가능해 기존 동작(모든 이벤트 통과) 유지.
+     *
+     * 위험: YouTube 가 빌드 업데이트로 인덱스 발행 정책을 바꾸면 카운트가 0 또는 과다로 회귀.
+     * 현재 빌드의 logcat 패턴을 근거로 적용.
+     */
+    private fun shouldCountScroll(ev: AccessibilityEvent, pkg: String): Boolean {
+        if (pkg != PKG_YOUTUBE) return true
+
+        val isMainShortsPager =
+            ev.fromIndex == -1 && ev.toIndex == -1 && ev.itemCount == -1
+        if (!isMainShortsPager) return false
+
+        val now = System.currentTimeMillis()
+        if (now - lastYoutubeScrollCountedMs < YOUTUBE_DEBOUNCE_MS) return false
+        lastYoutubeScrollCountedMs = now
+        return true
     }
 
     private suspend fun maybeStartTimerIntro() {
@@ -106,9 +149,14 @@ class ShortFormAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        private const val PKG_YOUTUBE = "com.google.android.youtube"
+
+        /** 한 스와이프의 잔여 스크롤 이벤트(100~200ms 간격) 묶기용 디바운스 임계치. */
+        private const val YOUTUBE_DEBOUNCE_MS = 500L
+
         private val TARGET_PACKAGES = setOf(
             "com.instagram.android",
-            "com.google.android.youtube",
+            PKG_YOUTUBE,
             "com.zhiliaoapp.musically",
             "com.ss.android.ugc.trill",
         )
