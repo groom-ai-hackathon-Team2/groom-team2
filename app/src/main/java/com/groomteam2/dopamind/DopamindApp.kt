@@ -52,10 +52,22 @@ class DopamindApp : Application() {
                 description = "챌린지 진행 상태 / 성공·실패 알림"
             }
         )
+
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_TIMER,
+                getString(R.string.notif_channel_timer),
+                NotificationManager.IMPORTANCE_MIN
+            ).apply {
+                description = "앱 타이머 동작 중 표시 (조용함)"
+                setShowBadge(false)
+            }
+        )
     }
 
     companion object {
         const val CHANNEL_OVERLAY_FG = "ch_overlay_fg"
         const val CHANNEL_CHALLENGE = "ch_challenge"
+        const val CHANNEL_TIMER = "ch_timer"
     }
 }

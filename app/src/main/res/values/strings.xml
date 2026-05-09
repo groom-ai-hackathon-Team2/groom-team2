@@ -48,7 +48,26 @@
     <string name="challenge_failed">아쉬워요. 챌린지 실패 😭</string>
     <string name="challenge_succeeded">잘했어요! +%1$d 포인트 획득 🎉</string>
 
+    <!-- 앱 타이머 -->
+    <string name="timer_setting_title">앱 타이머 목표 시간</string>
+    <string name="timer_setting_caption">인스타·유튜브 진입 시 이 시간만큼 카운트다운합니다</string>
+    <string name="timer_minutes_format">%1$d분</string>
+    <string name="timer_intro_title">지금부터 앱 타이머가 시작됩니다</string>
+    <string name="timer_intro_minutes">%1$d분 동안 사용 시간을 추적할게요</string>
+    <string name="timer_intro_start">시작하기</string>
+    <string name="timer_intro_cancel">취소</string>
+    <string name="timer_complete_title">수고했어요!</string>
+    <string name="timer_complete_body">목표 시간을 채웠어요. +%1$d 포인트 획득 🎉</string>
+    <string name="timer_complete_extend">5분 연장</string>
+    <string name="timer_complete_dismiss">종료</string>
+    <string name="timer_bubble_remaining">남은 시간 %1$s</string>
+    <string name="timer_bubble_open_app">도파민드 열기</string>
+    <string name="timer_bubble_stop">타이머 종료</string>
+    <string name="timer_fg_title">앱 타이머 동작 중</string>
+    <string name="timer_fg_body">목표 시간까지 카운트다운 중이에요</string>
+
     <!-- 알림 채널 -->
     <string name="notif_channel_overlay">코치 오버레이</string>
     <string name="notif_channel_challenge">챌린지 진행</string>
+    <string name="notif_channel_timer">앱 타이머</string>
 </resources>

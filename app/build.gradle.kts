@@ -86,6 +86,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    // XML 테마(Theme.Material3.DayNight.NoActionBar) 제공용. themes.xml 의 parent 가 여기서 옴.
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.navigation:navigation-compose:2.8.0")
 
     // ── 데이터 저장 (Room + DataStore) ─────────────────────────────
@@ -99,9 +101,9 @@ dependencies {
 
     // ── 네트워크 (Gemini API 호출) ─────────────────────────────────
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2")
 
     // ── 코루틴 ────────────────────────────────────────────────────

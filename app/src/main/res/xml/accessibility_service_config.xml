@@ -7,7 +7,7 @@
   - canRetrieveWindowContent=false: 화면 텍스트를 읽지 않음(개인정보 수집 0).
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewScrolled"
+    android:accessibilityEventTypes="typeViewScrolled|typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
     android:canRetrieveWindowContent="false"

@@ -1,6 +1,7 @@
 package com.groomteam2.dopamind.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.groomteam2.dopamind.R
@@ -78,6 +81,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             if (state.isVulnerableNow) {
                 VulnerableBanner()
@@ -98,10 +102,68 @@ fun HomeScreen(
                     accent = BrandSuccess,
                 )
             }
+            Spacer(Modifier.height(16.dp))
+            TimerSettingCard(
+                currentMinutes = state.goalTimerMinutes,
+                onSelect = vm::setGoalTimerMinutes,
+            )
             Spacer(Modifier.height(24.dp))
             Text("시간대별 위험도", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             VulnerableBars(state.vulnerableScores, state.currentHour)
+        }
+    }
+}
+
+/**
+ * 사용자가 인스타/유튜브에 진입할 때 사용할 목표 시간을 분 단위로 선택.
+ * 칩 그룹: 1, 5, 15, 30, 60 분 — 선택 시 즉시 DataStore 에 저장.
+ */
+@Composable
+private fun TimerSettingCard(
+    currentMinutes: Int,
+    onSelect: (Int) -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                stringResource(R.string.timer_setting_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.timer_setting_caption),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                listOf(1, 5, 15, 30, 60).forEach { m ->
+                    val selected = m == currentMinutes
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) BrandPurple else Color.White.copy(alpha = 0.08f))
+                            .clickable { onSelect(m) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.timer_minutes_format, m),
+                            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
         }
     }
 }
