@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 도파민드 텍스트 리소스. 추후 다국어 지원 시 values-en/ 등 추가. -->
+<resources>
+    <string name="app_name">도파민드</string>
+
+    <!-- 접근성 서비스 -->
+    <string name="accessibility_service_label">도파민드 코치</string>
+    <string name="accessibility_service_description">
+        인스타그램·유튜브 숏폼의 스크롤 패턴을 분석해, 도파민 좀비 상태가 의심될 때
+        AI 코치가 화면 위에 휴식 챌린지를 제안합니다. 화면 내용은 수집하지 않습니다.
+    </string>
+
+    <!-- 온보딩 -->
+    <string name="onboarding_title">도파민드 시작하기</string>
+    <string name="onboarding_subtitle">맞춤 코칭을 위해 간단한 정보를 알려주세요</string>
+    <string name="onboarding_job_label">직업 / 신분</string>
+    <string name="onboarding_schedule_label">하루 일정 (예: 9시 출근, 18시 퇴근, 23시 취침)</string>
+    <string name="onboarding_next">다음</string>
+
+    <!-- 권한 -->
+    <string name="permission_title">권한이 필요해요</string>
+    <string name="permission_overlay">다른 앱 위에 그리기</string>
+    <string name="permission_overlay_desc">코치가 인스타·유튜브 위에 팝업으로 등장하기 위해 필요합니다.</string>
+    <string name="permission_accessibility">접근성 서비스</string>
+    <string name="permission_accessibility_desc">스크롤 속도를 분석해 도파민 좀비 상태를 감지합니다.</string>
+    <string name="permission_grant">허용하러 가기</string>
+    <string name="permission_done">다 됐어요!</string>
+
+    <!-- 홈 -->
+    <string name="home_title">도파민드</string>
+    <string name="home_points">현재 포인트</string>
+    <string name="home_today_alerts">오늘 받은 코칭</string>
+    <string name="home_today_resisted">오늘 참은 횟수</string>
+    <string name="home_vulnerable_now">⚠ 지금은 너의 취약 시간대! 보상 3배.</string>
+
+    <!-- 랭킹 -->
+    <string name="ranking_title">이번 주 절제 랭킹</string>
+    <string name="ranking_caption">친구들과 도파민 절제력 한판!</string>
+
+    <!-- 오버레이 -->
+    <string name="overlay_title">AI 코치의 제안</string>
+    <string name="overlay_accept">콜!</string>
+    <string name="overlay_dismiss">나중에</string>
+    <string name="overlay_default_message">도파민 좀비 상태 감지! 지금 끄면 포인트를 드려요.</string>
+
+    <!-- 챌린지 -->
+    <string name="challenge_started">챌린지 시작! %1$d분 동안 안 켜기.</string>
+    <string name="challenge_failed">아쉬워요. 챌린지 실패 😭</string>
+    <string name="challenge_succeeded">잘했어요! +%1$d 포인트 획득 🎉</string>
+
+    <!-- 알림 채널 -->
+    <string name="notif_channel_overlay">코치 오버레이</string>
+    <string name="notif_channel_challenge">챌린지 진행</string>
+</resources>

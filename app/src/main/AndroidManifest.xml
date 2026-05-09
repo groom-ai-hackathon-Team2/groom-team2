@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  도파민드(Dopamind) 매니페스트.
+  - 인터넷: Gemini API 호출
+  - SYSTEM_ALERT_WINDOW: 인스타/유튜브 위에 코치 팝업 오버레이
+  - FOREGROUND_SERVICE: 오버레이 서비스 상시 동작
+  - PACKAGE_USAGE_STATS: (보조) 사용 시간 통계 조회
+  - POST_NOTIFICATIONS: 챌린지 알림용 (Android 13+)
+  - BIND_ACCESSIBILITY_SERVICE: 시스템이 접근성 서비스에 바인딩
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <application
+        android:name=".DopamindApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Dopamind"
+        tools:targetApi="33">
+
+        <!-- 메인 화면. 온보딩→권한→홈 순으로 라우팅. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Dopamind">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          숏폼 앱(인스타/유튜브 등)의 스크롤 이벤트를 후킹하는 접근성 서비스.
+          accessibility_service_config.xml 에서 대상 패키지/이벤트 타입 지정.
+        -->
+        <service
+            android:name=".service.ShortFormAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:label="@string/accessibility_service_label">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!--
+          코치 팝업을 다른 앱 위에 그리는 포그라운드 서비스.
+          foregroundServiceType=specialUse: API 34 에서 정책상 필요한 명시.
+        -->
+        <service
+            android:name=".service.OverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="digital_wellbeing_overlay" />
+        </service>
+
+    </application>
+
+</manifest>
