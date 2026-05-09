@@ -30,13 +30,18 @@ import com.groomteam2.dopamind.ui.theme.BrandSuccess
 
 /**
  * 타이머 만료 시 뜨는 큰 팝업.
- * "수고했어요!" + 포인트 안내 + [종료] / [5분 연장].
+ * "수고했어요!" + 포인트 안내 + [5분 연장] / [앱 닫기] / [종료].
+ *
+ * - 5분 연장: 카운트다운 5분 추가
+ * - 앱 닫기: 보던 숏폼 앱을 백그라운드로 보내고(=홈 런처로 이동) 타이머 종료
+ * - 종료: 오버레이만 닫고 타이머 정리 (기존 동작)
  */
 @Composable
 fun TimerCompleteView(
     rewardPoints: Int,
     onDismiss: () -> Unit,
     onExtend: () -> Unit,
+    onExit: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -69,6 +74,20 @@ fun TimerCompleteView(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
+            // 1행: 주요 액션 — 보던 숏폼 앱을 닫고 홈으로 이동.
+            Button(
+                onClick = onExit,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandPurple),
+            ) {
+                Text(
+                    stringResource(R.string.timer_complete_exit),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            // 2행: 보조 액션 — 5분 연장 / 오버레이만 종료.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -77,17 +96,10 @@ fun TimerCompleteView(
                     onClick = onExtend,
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(R.string.timer_complete_extend)) }
-                Button(
+                OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPurple),
-                ) {
-                    Text(
-                        stringResource(R.string.timer_complete_dismiss),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                ) { Text(stringResource(R.string.timer_complete_dismiss)) }
             }
         }
     }
