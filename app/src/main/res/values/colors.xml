@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material3 동적 컬러 사용을 기본으로 하지만, 오버레이/스플래시 등 정적 색상 fallback. -->
+<resources>
+    <color name="brand_primary">#7C5CFF</color>
+    <color name="brand_secondary">#FF6B9D</color>
+    <color name="brand_warning">#FFB400</color>
+    <color name="brand_success">#3DD598</color>
+    <color name="overlay_scrim">#CC1A1B2E</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>

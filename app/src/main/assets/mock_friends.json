@@ -1,0 +1,11 @@
+{
+  "_comment": "시연용 가짜 친구 데이터. 이번 주(월~일) 누적 절제 점수.",
+  "friends": [
+    { "id": "f1", "name": "수민", "score": 920, "avatar": "🐱" },
+    { "id": "f2", "name": "지호", "score": 740, "avatar": "🦊" },
+    { "id": "f3", "name": "민준", "score": 680, "avatar": "🐻" },
+    { "id": "f4", "name": "예린", "score": 1120, "avatar": "🐰" },
+    { "id": "f5", "name": "태양", "score": 410, "avatar": "🐯" },
+    { "id": "f6", "name": "하늘", "score": 890, "avatar": "🐼" }
+  ]
+}

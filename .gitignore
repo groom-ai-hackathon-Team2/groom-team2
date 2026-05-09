@@ -1,0 +1,29 @@
+# 안드로이드 / Gradle 표준 ignore 목록.
+# API 키가 들어가는 local.properties는 절대 커밋되면 안 됨.
+
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+**/build/
+**/.cxx/
+
+# Android Studio가 자동 생성하는 파일
+.navigation/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# 키스토어 파일 (시연용 디버그 키 외에는 커밋 금지)
+*.jks
+*.keystore
+
+# 로그 출력
+*.log

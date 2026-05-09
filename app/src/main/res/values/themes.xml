@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  앱 테마. Compose 가 실제 색상을 제어하므로 여기서는 베이스만 잡는다.
+  Activity 가 시작되기 전 잠깐 보이는 스플래시(window background) 정도만 의미 있음.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Dopamind" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+    </style>
+</resources>
