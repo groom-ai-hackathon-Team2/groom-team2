@@ -72,6 +72,8 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     private var completeView: View? = null
 
     private val bubbleState = MutableStateFlow(BubbleUiState())
+    /** 인트로 [시작하기] 누른 시점에 Compose 가 넘겨준 보상값을 보관해 startTimer 가 락인. */
+    private var pendingLockedReward: Int = com.groomteam2.dopamind.data.prefs.UserPrefs.REWARD_INTRO_MAX
     private var countdownJob: Job? = null
 
     override fun onCreate() {
@@ -95,6 +97,7 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
             ACTION_START_TIMER -> startTimer()
             ACTION_FINISH -> finishTimer()
             ACTION_EXTEND -> extendTimer()
+            ACTION_EXIT_APP -> exitApp()
             ACTION_DISMISS -> dismissAll()
             else -> showIntro()
         }
@@ -108,11 +111,22 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
         lifecycleScope.launch {
             val minutes = ServiceLocator.userPrefs.goalTimerMinutes.firstOrNull()
                 ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
+            pendingLockedReward = com.groomteam2.dopamind.data.prefs.UserPrefs.REWARD_INTRO_MAX
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val vulnerableNow = ServiceLocator.vulnerableTimeLearner.isVulnerableNow(hour)
             val view = createComposeView {
                 TimerIntroView(
                     minutes = minutes,
-                    onStart = { start(applicationContext, ACTION_START_TIMER) },
+                    rewardMax = com.groomteam2.dopamind.data.prefs.UserPrefs.REWARD_INTRO_MAX,
+                    rewardMin = com.groomteam2.dopamind.data.prefs.UserPrefs.REWARD_INTRO_MIN,
+                    isVulnerableHour = vulnerableNow,
+                    onStart = { lockedReward ->
+                        // Compose 가 카운트다운을 자체 관리하므로 그 시점 값을 그대로 받아 startTimer 로 전달.
+                        pendingLockedReward = lockedReward
+                        start(applicationContext, ACTION_START_TIMER)
+                    },
                     onCancel = { start(applicationContext, ACTION_DISMISS) },
+                    onAutoExpire = { start(applicationContext, ACTION_DISMISS) },
                 )
             }
             introView = view
@@ -121,6 +135,16 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     }
 
     private fun startTimer() {
+        // pendingLockedReward 는 Compose 의 onStart(lockedReward) 콜백에서 채워둠.
+        var lockedReward = pendingLockedReward.coerceAtLeast(
+            com.groomteam2.dopamind.data.prefs.UserPrefs.REWARD_INTRO_MIN
+        )
+        // 취약 시간대 진입 시 즉시 보상 3배 — 적응형 학습이 사용자에게 체감되도록.
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        if (ServiceLocator.vulnerableTimeLearner.isVulnerableNow(hour)) {
+            lockedReward *= 3
+        }
+        val finalReward = lockedReward
         removeView(introView); introView = null
 
         lifecycleScope.launch {
@@ -128,6 +152,7 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
             val minutes = prefs.goalTimerMinutes.firstOrNull() ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
             val endAt = System.currentTimeMillis() + minutes * 60_000L
             prefs.setActiveTimerEndAt(endAt)
+            prefs.setActiveTimerReward(finalReward)
             attachBubble()
             launchCountdown(endAt)
         }
@@ -151,12 +176,20 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
 
         lifecycleScope.launch {
             val prefs = ServiceLocator.userPrefs
-            val minutes = prefs.goalTimerMinutes.firstOrNull() ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
-            val reward = minutes * REWARD_PER_MINUTE
+            val reward = prefs.activeTimerReward.firstOrNull()
+                ?: com.groomteam2.dopamind.data.prefs.UserPrefs.REWARD_INTRO_MAX
+            val minutes = prefs.goalTimerMinutes.firstOrNull()
+                ?: com.groomteam2.dopamind.data.prefs.UserPrefs.DEFAULT_GOAL_MIN
+
             ServiceLocator.pointRepository.add(
                 delta = reward,
                 reason = "timer_complete",
                 challengeId = null,
+            )
+            // 시간대별 사용량 학습 — '이 시간에 N분 머물렀다' 신호를 EMA 에 누적.
+            ServiceLocator.vulnerableTimeLearner.recordUsage(
+                hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
+                minutes = minutes,
             )
             prefs.setActiveTimerEndAt(0L)
 
@@ -165,10 +198,38 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
                     rewardPoints = reward,
                     onDismiss = { start(applicationContext, ACTION_DISMISS) },
                     onExtend = { start(applicationContext, ACTION_EXTEND) },
+                    onExit = { start(applicationContext, ACTION_EXIT_APP) },
                 )
             }
             completeView = view
             addCenteredCard(view)
+        }
+    }
+
+    /**
+     * "앱 닫기" 액션.
+     * 보던 숏폼 앱을 백그라운드로 보내고(=홈 런처로 이동) 타이머 정리.
+     *
+     * Android 10+ 의 백그라운드 액티비티 시작 제한이 있지만,
+     * TimerService 는 startForeground 로 떠있는 포그라운드 서비스라 홈 런처는 정상 시작됨.
+     */
+    private fun exitApp() {
+        countdownJob?.cancel()
+        removeView(introView); introView = null
+        removeView(bubbleView); bubbleView = null
+        removeView(completeView); completeView = null
+        lifecycleScope.launch {
+            ServiceLocator.userPrefs.setActiveTimerEndAt(0L)
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            try {
+                startActivity(homeIntent)
+            } catch (e: Exception) {
+                // 런처 부재 등 예외는 무시 — 어차피 stopSelf 로 정리.
+            }
+            stopSelf()
         }
     }
 
@@ -366,13 +427,13 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     companion object {
         private const val NOTIF_ID = 4343
         private const val EXTEND_MINUTES = 5
-        private const val REWARD_PER_MINUTE = 10
         private const val TOUCH_SLOP = 12
 
         const val ACTION_SHOW_INTRO = "com.groomteam2.dopamind.timer.SHOW_INTRO"
         const val ACTION_START_TIMER = "com.groomteam2.dopamind.timer.START_TIMER"
         const val ACTION_FINISH = "com.groomteam2.dopamind.timer.FINISH"
         const val ACTION_EXTEND = "com.groomteam2.dopamind.timer.EXTEND"
+        const val ACTION_EXIT_APP = "com.groomteam2.dopamind.timer.EXIT_APP"
         const val ACTION_DISMISS = "com.groomteam2.dopamind.timer.DISMISS"
 
         fun start(context: Context, action: String) {

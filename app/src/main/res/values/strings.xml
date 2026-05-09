@@ -7,7 +7,8 @@
     <string name="accessibility_service_label">도파민드 코치</string>
     <string name="accessibility_service_description">
         인스타그램·유튜브 숏폼의 스크롤 패턴을 분석해, 도파민 좀비 상태가 의심될 때
-        AI 코치가 화면 위에 휴식 챌린지를 제안합니다. 화면 내용은 수집하지 않습니다.
+        AI 코치가 화면 위에 휴식 챌린지를 제안합니다. 일반 영상 목록은 카운트하지 않도록
+        Shorts/Reels 탭 상태만 확인합니다. 영상·댓글 등 콘텐츠 텍스트는 수집하지 않습니다.
     </string>
 
     <!-- 온보딩 -->
@@ -59,12 +60,27 @@
     <string name="timer_complete_title">수고했어요!</string>
     <string name="timer_complete_body">목표 시간을 채웠어요. +%1$d 포인트 획득 🎉</string>
     <string name="timer_complete_extend">5분 연장</string>
+    <string name="timer_complete_exit">앱 닫기</string>
     <string name="timer_complete_dismiss">종료</string>
     <string name="timer_bubble_remaining">남은 시간 %1$s</string>
     <string name="timer_bubble_open_app">도파민드 열기</string>
     <string name="timer_bubble_stop">타이머 종료</string>
     <string name="timer_fg_title">앱 타이머 동작 중</string>
     <string name="timer_fg_body">목표 시간까지 카운트다운 중이에요</string>
+
+    <!-- AI 피드백 -->
+    <string name="ai_feedback_title">AI 피드백</string>
+    <string name="ai_feedback_caption">너의 숏폼 사용 패턴을 보고 한 마디 해줄게</string>
+    <string name="ai_feedback_request">피드백 받기</string>
+    <string name="ai_feedback_refresh">다시 받기</string>
+    <string name="ai_feedback_loading">분석 중…</string>
+    <string name="ai_feedback_empty_hint">아직 받은 피드백이 없어요. 버튼을 눌러보세요.</string>
+    <string name="ai_feedback_error">피드백을 받지 못했어요. 잠시 후 다시 시도해주세요.</string>
+
+    <!-- AI 학습 진행 -->
+    <string name="learning_status_empty">AI가 너의 패턴을 학습할 준비를 하고 있어. 곧 시간대별 위험도가 나타날 거야.</string>
+    <string name="learning_status_progress">AI 학습 중 · %1$d개 시간대 데이터 누적</string>
+    <string name="learning_status_peak">가장 위험한 시간: %1$d시 (보상 3배 적용)</string>
 
     <!-- 알림 채널 -->
     <string name="notif_channel_overlay">코치 오버레이</string>
