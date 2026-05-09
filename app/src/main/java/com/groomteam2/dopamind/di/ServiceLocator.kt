@@ -3,6 +3,7 @@ package com.groomteam2.dopamind.di
 import android.content.Context
 import com.groomteam2.dopamind.ai.CoachingEngine
 import com.groomteam2.dopamind.ai.GeminiClient
+import com.groomteam2.dopamind.ai.PatternFeedbackEngine
 import com.groomteam2.dopamind.analyzer.PatternAnalyzer
 import com.groomteam2.dopamind.analyzer.VulnerableTimeLearner
 import com.groomteam2.dopamind.data.db.AppDatabase
@@ -57,5 +58,14 @@ object ServiceLocator {
     val geminiClient: GeminiClient by lazy { GeminiClient() }
     val coachingEngine: CoachingEngine by lazy {
         CoachingEngine(geminiClient, userRepository, pointRepository, vulnerableTimeLearner)
+    }
+    val patternFeedbackEngine: PatternFeedbackEngine by lazy {
+        PatternFeedbackEngine(
+            geminiClient,
+            userRepository,
+            pointRepository,
+            challengeRepository,
+            vulnerableTimeLearner,
+        )
     }
 }

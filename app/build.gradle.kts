@@ -86,7 +86,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    // XML 테마(Theme.Material3.DayNight.NoActionBar) 제공용. themes.xml 의 parent 가 여기서 옴.
+    // XML 테마(Theme.Material3.DayNight.NoActionBar) 제공용 — themes.xml parent 에서 사용.
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.navigation:navigation-compose:2.8.0")
 
