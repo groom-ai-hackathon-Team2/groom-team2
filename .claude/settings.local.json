@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Read(//c/Users/kimho/.gradle/jdks//**)",
-      "Read(//c/Program Files/Android/Android Studio/jbr/bin//**)"
+      "Read(//c/Program Files/Android/Android Studio/jbr/bin//**)",
+      "Bash(ls \"C:\\\\Users\\\\kimho\\\\OneDrive\\\\Desktop\\\\groom-team2\\\\app\\\\src\\\\main\\\\java\")",
+      "Bash(ls \"C:\\\\Users\\\\kimho\\\\OneDrive\\\\Desktop\\\\groom-team2\\\\app\\\\src\\\\main\\\\kotlin\")",
+      "Bash(./gradlew :app:compileDebugKotlin --quiet)",
+      "PowerShell(Get-Command *)"
     ]
   }
 }

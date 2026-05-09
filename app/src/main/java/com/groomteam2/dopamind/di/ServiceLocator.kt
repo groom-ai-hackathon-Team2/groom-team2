@@ -3,6 +3,8 @@ package com.groomteam2.dopamind.di
 import android.content.Context
 import com.groomteam2.dopamind.ai.CoachingEngine
 import com.groomteam2.dopamind.ai.GeminiClient
+import com.groomteam2.dopamind.ai.ReportEngine
+import kotlinx.coroutines.flow.first
 import com.groomteam2.dopamind.analyzer.PatternAnalyzer
 import com.groomteam2.dopamind.analyzer.ShortsStatsCollector
 import com.groomteam2.dopamind.analyzer.VulnerableTimeLearner
@@ -69,5 +71,13 @@ object ServiceLocator {
     val geminiClient: GeminiClient by lazy { GeminiClient() }
     val coachingEngine: CoachingEngine by lazy {
         CoachingEngine(geminiClient, userRepository, pointRepository, vulnerableTimeLearner)
+    }
+    val reportEngine: ReportEngine by lazy {
+        ReportEngine(
+            gemini = geminiClient,
+            userRepo = userRepository,
+            statsRepo = shortsStatsRepository,
+            pointBalance = { pointRepository.balance.first() },
+        )
     }
 }

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -58,13 +59,47 @@ class UserPrefs(private val context: Context) {
         store.edit { it[KEY_TIMER_END_AT] = value }
     }
 
+    // ── 구독 플랜 ────────────────────────────────────────────────
+    // 수익화 모델: STANDARD 는 기본 리포트만, PRO 는 심층 섹션 잠금 해제.
+    val planTier: Flow<PlanTier> = store.data.map {
+        when (it[KEY_PLAN_TIER]) {
+            "PRO" -> PlanTier.PRO
+            else -> PlanTier.STANDARD
+        }
+    }
+
+    suspend fun setPlanTier(tier: PlanTier) {
+        store.edit { it[KEY_PLAN_TIER] = tier.name }
+    }
+
+    // ── 마지막 AI 리포트 캐시 ────────────────────────────────────
+    // Gemini 호출은 비싸고 느려서 가장 최근 1건만 캐시. 탭 재진입 시 즉시 표시.
+    val lastReportText: Flow<String> = store.data.map { it[KEY_LAST_REPORT_TEXT] ?: "" }
+    val lastReportPlan: Flow<String> = store.data.map { it[KEY_LAST_REPORT_PLAN] ?: "" }
+    val lastReportAt: Flow<Long> = store.data.map { it[KEY_LAST_REPORT_AT] ?: 0L }
+
+    suspend fun saveReport(text: String, plan: PlanTier, atMs: Long) {
+        store.edit {
+            it[KEY_LAST_REPORT_TEXT] = text
+            it[KEY_LAST_REPORT_PLAN] = plan.name
+            it[KEY_LAST_REPORT_AT] = atMs
+        }
+    }
+
     companion object {
         const val DEFAULT_GOAL_MIN = 5
 
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         private val KEY_GOAL_TIMER_MIN = intPreferencesKey("goal_timer_min")
         private val KEY_TIMER_END_AT = longPreferencesKey("timer_end_at")
+        private val KEY_PLAN_TIER = stringPreferencesKey("plan_tier")
+        private val KEY_LAST_REPORT_TEXT = stringPreferencesKey("last_report_text")
+        private val KEY_LAST_REPORT_PLAN = stringPreferencesKey("last_report_plan")
+        private val KEY_LAST_REPORT_AT = longPreferencesKey("last_report_at")
         private fun hourKey(hour: Int): Preferences.Key<Float> =
             floatPreferencesKey("vulnerable_$hour")
     }
 }
+
+/** 사용자 구독 등급. STANDARD: 기본 리포트, PRO: 심층 섹션까지 잠금 해제. */
+enum class PlanTier { STANDARD, PRO }

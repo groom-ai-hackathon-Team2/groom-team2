@@ -91,6 +91,29 @@
     <string name="shorts_stats_minutes">%1$d분</string>
     <string name="shorts_stats_hours_minutes">%1$d시간 %2$d분</string>
 
+    <!-- 하단 탭 -->
+    <string name="tab_home">홈</string>
+    <string name="tab_report">리포트</string>
+    <string name="tab_ranking">랭킹</string>
+
+    <!-- 리포트 -->
+    <string name="report_title">AI 주간 리포트</string>
+    <string name="report_plan_standard">Standard</string>
+    <string name="report_plan_pro">PRO</string>
+    <string name="report_generate">AI 리포트 생성하기</string>
+    <string name="report_regenerate">새로 생성하기</string>
+    <string name="report_generating">분석 중…</string>
+    <string name="report_generating_hint">너의 7일치 숏폼 패턴을 분석하고 있어…</string>
+    <string name="report_empty_title">아직 리포트가 없어요</string>
+    <string name="report_empty_desc">버튼을 누르면 AI가 너의 숏폼 사용 패턴을 분석해 주간 리포트를 작성해줄게.</string>
+    <string name="report_meta_line">생성 %1$s · %2$s 플랜으로 작성</string>
+    <string name="report_meta_standard">Standard</string>
+    <string name="report_meta_pro">PRO</string>
+    <string name="report_section_locked">PRO 플랜에서 잠금 해제됩니다.</string>
+    <string name="report_upgrade_title">PRO에서 더 깊은 분석 받기</string>
+    <string name="report_upgrade_desc">시간대별 심층 분석과 너의 일정에 맞춘 맞춤 코칭 플랜을 받아볼 수 있어.</string>
+    <string name="report_upgrade_hint_toggle">상단 배지를 눌러 PRO 데모로 전환할 수 있어요</string>
+
     <!-- 알림 채널 -->
     <string name="notif_channel_overlay">코치 오버레이</string>
     <string name="notif_channel_challenge">챌린지 진행</string>
