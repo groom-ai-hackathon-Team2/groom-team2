@@ -2,15 +2,16 @@
 <!--
   접근성 서비스 설정.
   - packageNames: 인스타그램, 유튜브, 틱톡 한정. 그 외 앱의 이벤트는 받지 않아 배터리/프라이버시 영향 최소화.
-  - eventTypes: typeViewScrolled 만. 텍스트 입력 등 민감 이벤트는 받지 않음.
+  - eventTypes: typeViewScrolled + typeWindowStateChanged.
   - notificationTimeout=100ms: 빠른 스와이프 패턴을 잘 잡기 위해 짧게 설정.
-  - canRetrieveWindowContent=false: 화면 텍스트를 읽지 않음(개인정보 수집 0).
+  - canRetrieveWindowContent=true: rootInActiveWindow 로 현재 화면이 Shorts/Reels 탭인지 검사.
+    수집 범위는 탭 선택 상태/특정 버튼 contentDescription 만 — 영상/댓글 텍스트는 사용 안 함.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewScrolled"
+    android:accessibilityEventTypes="typeViewScrolled|typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
-    android:canRetrieveWindowContent="false"
+    android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="100"
     android:packageNames="com.instagram.android,com.google.android.youtube,com.zhiliaoapp.musically,com.ss.android.ugc.trill" />
