@@ -59,7 +59,12 @@ class PatternAnalyzer(
             timestamps.removeFirst()
         }
 
-        if (timestamps.size < MIN_EVENTS) return
+        // 시간대별 최소 이벤트 수 — 취약 시간이면 더 적은 스크롤만으로도 트리거.
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val isVulnerable = vulnerableTimeLearner.isVulnerableNow(hour)
+        val minEvents = if (isVulnerable) MIN_EVENTS_VULNERABLE else MIN_EVENTS
+
+        if (timestamps.size < minEvents) return
         if (ev.timestampMs - lastZombieAt < COOLDOWN_MS) return
 
         // 평균/표준편차 계산.
@@ -77,9 +82,7 @@ class PatternAnalyzer(
             sqrt(intervals.sumOf { (it - mean) * (it - mean) } / intervals.size)
         }
 
-        // 시간대별 임계치 결정 — 취약시간이면 더 쉽게 트리거.
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val isVulnerable = vulnerableTimeLearner.isVulnerableNow(hour)
+        // 임계치 — 취약시간이면 훨씬 느린 스크롤도 좀비로 본다 (사용자 보호 강화).
         val threshold = if (isVulnerable) THRESHOLD_VULNERABLE_MS else THRESHOLD_MS
 
         if (avg < threshold && std < STD_MAX_MS) {
@@ -102,9 +105,10 @@ class PatternAnalyzer(
 
     companion object {
         private const val WINDOW_MS = 5_000L
-        private const val MIN_EVENTS = 5
-        private const val THRESHOLD_MS = 800.0           // 평소 시간대
-        private const val THRESHOLD_VULNERABLE_MS = 1000.0 // 취약 시간대 — 1초 미만이면 트리거
+        private const val MIN_EVENTS = 5                 // 평소 — 5초 안에 5번 스크롤
+        private const val MIN_EVENTS_VULNERABLE = 3      // 취약 — 3번만 빠르게 넘겨도 경고
+        private const val THRESHOLD_MS = 800.0           // 평소 — 800ms 미만 평균 간격
+        private const val THRESHOLD_VULNERABLE_MS = 1500.0 // 취약 — 1.5s 도 빠르다고 본다
         private const val STD_MAX_MS = 300.0             // 표준편차가 너무 크면 의도적 사용으로 판단
         private const val COOLDOWN_MS = 10 * 60_000L     // 10분 쿨다운
     }

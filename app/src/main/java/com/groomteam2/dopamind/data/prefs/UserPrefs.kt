@@ -58,12 +58,22 @@ class UserPrefs(private val context: Context) {
         store.edit { it[KEY_TIMER_END_AT] = value }
     }
 
+    // 인트로 팝업에서 사용자가 [시작하기] 누른 시점의 보상 — 만료 시 그 값으로 지급.
+    val activeTimerReward: Flow<Int> = store.data.map { it[KEY_TIMER_REWARD] ?: REWARD_INTRO_MAX }
+
+    suspend fun setActiveTimerReward(value: Int) {
+        store.edit { it[KEY_TIMER_REWARD] = value }
+    }
+
     companion object {
         const val DEFAULT_GOAL_MIN = 5
+        const val REWARD_INTRO_MAX = 30   // 인트로 팝업 시작값
+        const val REWARD_INTRO_MIN = 10   // 인트로 팝업 최소값(이 밑으로 안 깎임)
 
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         private val KEY_GOAL_TIMER_MIN = intPreferencesKey("goal_timer_min")
         private val KEY_TIMER_END_AT = longPreferencesKey("timer_end_at")
+        private val KEY_TIMER_REWARD = intPreferencesKey("timer_reward")
         private fun hourKey(hour: Int): Preferences.Key<Float> =
             floatPreferencesKey("vulnerable_$hour")
     }

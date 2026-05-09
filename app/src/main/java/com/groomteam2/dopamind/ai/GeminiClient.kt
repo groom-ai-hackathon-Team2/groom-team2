@@ -46,13 +46,31 @@ class GeminiClient {
      * 시스템 프롬프트 + 사용자 프롬프트 한 쌍으로 호출.
      * 응답 candidates[0].content.parts[0].text 의 raw 문자열을 반환.
      */
-    suspend fun generateJson(systemPrompt: String, userPrompt: String): String {
+    suspend fun generateJson(systemPrompt: String, userPrompt: String): String =
+        generate(systemPrompt, userPrompt, GeminiGenerationConfig())
+
+    /**
+     * 자연어(평문) 응답을 받기 위한 호출. responseMimeType 을 text/plain 으로 오버라이드.
+     */
+    suspend fun generateText(systemPrompt: String, userPrompt: String): String =
+        generate(
+            systemPrompt,
+            userPrompt,
+            GeminiGenerationConfig(responseMimeType = "text/plain", maxOutputTokens = 384),
+        )
+
+    private suspend fun generate(
+        systemPrompt: String,
+        userPrompt: String,
+        config: GeminiGenerationConfig,
+    ): String {
         check(isConfigured) { "GEMINI_API_KEY 가 설정되지 않았습니다." }
 
         val req = GeminiRequest(
             contents = listOf(
                 GeminiContent(role = "user", parts = listOf(GeminiPart(userPrompt))),
             ),
+            generationConfig = config,
             systemInstruction = GeminiContent(
                 role = "user",
                 parts = listOf(GeminiPart(systemPrompt)),

@@ -16,12 +16,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -60,6 +64,7 @@ fun HomeScreen(
     vm: HomeViewModel = viewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle(initialValue = HomeState())
+    val feedback by vm.feedback.collectAsStateWithLifecycle(initialValue = AIFeedbackState.Empty)
 
     Scaffold(
         topBar = {
@@ -107,10 +112,153 @@ fun HomeScreen(
                 currentMinutes = state.goalTimerMinutes,
                 onSelect = vm::setGoalTimerMinutes,
             )
+            Spacer(Modifier.height(16.dp))
+            AIFeedbackCard(
+                state = feedback,
+                onRequest = vm::requestFeedback,
+            )
             Spacer(Modifier.height(24.dp))
             Text("시간대별 위험도", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             VulnerableBars(state.vulnerableScores, state.currentHour)
+            Spacer(Modifier.height(8.dp))
+            LearningStatusLine(
+                learnedHours = state.learnedHours,
+                peakHour = state.peakHour,
+            )
+        }
+    }
+}
+
+/**
+ * 24시간 막대 그래프 아래에 한 줄로 표시되는 학습 상태.
+ * 데이터가 없으면 안내, 쌓이면 학습 시간대 수 + 가장 위험한 시간을 강조.
+ */
+@Composable
+private fun LearningStatusLine(learnedHours: Int, peakHour: Int?) {
+    if (learnedHours == 0) {
+        Text(
+            stringResource(R.string.learning_status_empty),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+        )
+    } else {
+        Text(
+            stringResource(R.string.learning_status_progress, learnedHours),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+        )
+        if (peakHour != null) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.learning_status_peak, peakHour),
+                color = BrandWarning,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+/**
+ * Gemini 가 사용자의 숏폼 패턴을 분석해 한국어 자연어로 한 마디 — 명시적 버튼 클릭 시에만 호출.
+ *
+ * 4가지 상태 분기:
+ *  Empty   — 아직 호출 X. 안내 문구 + [피드백 받기]
+ *  Loading — 호출 진행. 스피너 + "분석 중…"
+ *  Ready   — 응답 수신. 본문 + [다시 받기]
+ *  Error   — 실패. 에러 메시지 + [다시 받기]
+ */
+@Composable
+private fun AIFeedbackCard(
+    state: AIFeedbackState,
+    onRequest: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(BrandPurple)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("🤖 AI", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.ai_feedback_title),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.ai_feedback_caption),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            when (state) {
+                AIFeedbackState.Empty -> {
+                    Text(
+                        stringResource(R.string.ai_feedback_empty_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onRequest,
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandPurple),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(R.string.ai_feedback_request),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                AIFeedbackState.Loading -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.width(20.dp).height(20.dp),
+                            strokeWidth = 2.dp,
+                            color = BrandPurple,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.ai_feedback_loading),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                is AIFeedbackState.Ready -> {
+                    Text(
+                        state.text,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onRequest,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.ai_feedback_refresh)) }
+                }
+                is AIFeedbackState.Error -> {
+                    Text(
+                        stringResource(R.string.ai_feedback_error),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onRequest,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.ai_feedback_refresh)) }
+                }
+            }
         }
     }
 }
