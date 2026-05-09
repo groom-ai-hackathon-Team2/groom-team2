@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.platform.LocalContext
+import com.groomteam2.dopamind.service.TimerService
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,11 +61,39 @@ fun HomeScreen(
     vm: HomeViewModel = viewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle(initialValue = HomeState())
+    val shortsStats by vm.shortsStatsFlow.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.home_title), fontWeight = FontWeight.Bold) },
+                title = {
+                    // 제목 옆에 재생 버튼 — 한 번 종료된 뒤에도 사용자가 다시 타이머를 시작할 수 있도록.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                val running = state.activeTimerEndAt > System.currentTimeMillis()
+                                if (running) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.home_timer_running),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                } else {
+                                    TimerService.start(context, TimerService.ACTION_SHOW_INTRO)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = stringResource(R.string.home_start_timer),
+                                tint = BrandPurple,
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.home_title), fontWeight = FontWeight.Bold)
+                    }
+                },
                 actions = {
                     IconButton(onClick = onOpenPermission) {
                         Icon(Icons.Default.Lock, contentDescription = "권한")
@@ -102,6 +134,10 @@ fun HomeScreen(
             Text("시간대별 위험도", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             VulnerableBars(state.vulnerableScores, state.currentHour)
+            Spacer(Modifier.height(24.dp))
+            // 시간대별 위험도 그래프 바로 아래에 숏폼 사용 통계 섹션.
+            ShortsStatsSection(shortsStats)
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
