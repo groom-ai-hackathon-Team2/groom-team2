@@ -4,11 +4,13 @@ import android.content.Context
 import com.groomteam2.dopamind.ai.CoachingEngine
 import com.groomteam2.dopamind.ai.GeminiClient
 import com.groomteam2.dopamind.analyzer.PatternAnalyzer
+import com.groomteam2.dopamind.analyzer.ShortsStatsCollector
 import com.groomteam2.dopamind.analyzer.VulnerableTimeLearner
 import com.groomteam2.dopamind.data.db.AppDatabase
 import com.groomteam2.dopamind.data.prefs.UserPrefs
 import com.groomteam2.dopamind.data.repo.ChallengeRepository
 import com.groomteam2.dopamind.data.repo.PointRepository
+import com.groomteam2.dopamind.data.repo.ShortsStatsRepository
 import com.groomteam2.dopamind.data.repo.UserRepository
 
 /**
@@ -44,6 +46,13 @@ object ServiceLocator {
     val challengeRepository: ChallengeRepository by lazy {
         ChallengeRepository(database.challengeDao())
     }
+    val shortsStatsRepository: ShortsStatsRepository by lazy {
+        ShortsStatsRepository(
+            viewDao = database.shortsViewLogDao(),
+            sessionDao = database.shortsSessionLogDao(),
+            vulnerableTimeLearner = vulnerableTimeLearner,
+        )
+    }
 
     // ── 분석/학습 ────────────────────────────────────────────────
     val vulnerableTimeLearner: VulnerableTimeLearner by lazy {
@@ -51,6 +60,9 @@ object ServiceLocator {
     }
     val patternAnalyzer: PatternAnalyzer by lazy {
         PatternAnalyzer(vulnerableTimeLearner)
+    }
+    val shortsStatsCollector: ShortsStatsCollector by lazy {
+        ShortsStatsCollector(shortsStatsRepository)
     }
 
     // ── AI ───────────────────────────────────────────────────────
