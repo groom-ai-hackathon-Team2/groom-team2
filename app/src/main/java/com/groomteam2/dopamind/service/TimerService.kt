@@ -74,6 +74,11 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     private val bubbleState = MutableStateFlow(BubbleUiState())
     private var countdownJob: Job? = null
 
+    // 포인트 이중 적립 방지 플래그
+    // dismissAll() 이 ACTION_DISMISS 로 먼저 도착하면 true 로 설정해,
+    // 이미 큐에 쌓인 ACTION_FINISH 가 뒤늦게 처리되어도 포인트를 추가하지 않도록 함
+    private var isPointAcquired = false
+
     override fun onCreate() {
         super.onCreate()
         savedStateRegistryController.performAttach()
@@ -121,6 +126,9 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     }
 
     private fun startTimer() {
+        // 이전 사이클에서 dismissAll() 이 isPointAcquired = true 를 남겼을 수 있으므로
+        // 새 타이머 시작 시점에 리셋. 포인트/DB 데이터는 건드리지 않음.
+        isPointAcquired = false
         removeView(introView); introView = null
 
         lifecycleScope.launch {
@@ -146,6 +154,10 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     }
 
     private fun finishTimer() {
+        // OverlayService 에서 콜! 버튼을 눌러 이미 포인트를 지급했다면 중단
+        if (isPointAcquired) return
+        isPointAcquired = true
+
         countdownJob?.cancel()
         removeView(bubbleView); bubbleView = null
 
@@ -173,6 +185,8 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
     }
 
     private fun dismissAll() {
+        // 이미 큐에 쌓인 ACTION_FINISH 가 뒤늦게 처리되어도 포인트를 적립하지 않도록 플래그 설정
+        isPointAcquired = true
         countdownJob?.cancel()
         removeView(introView); introView = null
         removeView(bubbleView); bubbleView = null

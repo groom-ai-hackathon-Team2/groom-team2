@@ -100,6 +100,16 @@ class PatternAnalyzer(
         }
     }
 
+    /**
+     * 팝업이 닫힐 때 호출. 제어 플래그만 리셋하고 누적 데이터는 건드리지 않는다.
+     * - lastZombieAt = 0: 쿨다운 해제 → 다음 스크롤 패턴 감지 시 즉시 재트리거 가능
+     * - _zombieStateFlow = null: stale 감지값 제거 → collectLatest 가 다음 감지를 새 값으로 수신
+     */
+    fun reset() {
+        lastZombieAt = 0L
+        _zombieStateFlow.value = null
+    }
+
     companion object {
         private const val WINDOW_MS = 5_000L
         private const val MIN_EVENTS = 5

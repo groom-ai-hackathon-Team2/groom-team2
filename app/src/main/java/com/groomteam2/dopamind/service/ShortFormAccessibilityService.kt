@@ -2,6 +2,7 @@ package com.groomteam2.dopamind.service
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
+import android.widget.Toast
 import com.groomteam2.dopamind.analyzer.ScrollEvent
 import com.groomteam2.dopamind.analyzer.ScrollEventBus
 import com.groomteam2.dopamind.di.ServiceLocator
@@ -13,6 +14,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 숏폼 앱의 스크롤 이벤트를 받아 ScrollEventBus 로 발행하는 접근성 서비스.
@@ -32,6 +34,10 @@ class ShortFormAccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var analysisJob: Job? = null
     private var challengeWatchJob: Job? = null
+
+    // 중복 차감 방지: 동일 challengeId 에 대해 페널티가 한 번만 적용되도록 마지막 ID 보관.
+    // @Volatile — 여러 코루틴(Dispatchers.Default 스레드풀)에서 동시에 접근하므로 가시성 보장.
+    @Volatile private var penaltyChallengeId = -1L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -87,10 +93,42 @@ class ShortFormAccessibilityService : AccessibilityService() {
         val targets = challenge.targetPackages.split(",").map { it.trim() }
         if (currentPkg !in targets) return
 
-        // 약속 시간이 아직 지나지 않았는데 대상 앱을 켰다면 실패.
+        // 약속 시간이 아직 지나지 않았는데 대상 앱을 켰다면 실패 + 페널티.
         val deadline = challenge.createdAt + challenge.durationMinutes * 60_000L
         if (System.currentTimeMillis() < deadline) {
             ServiceLocator.challengeRepository.markFailed(challenge.id)
+            applyPenalty(challenge.id)
+        }
+    }
+
+    /**
+     * 챌린지 실패 시 포인트 차감.
+     *
+     * 방어 조건:
+     *  1) penaltyChallengeId 로 동일 챌린지에 대한 중복 차감 차단
+     *     (checkChallengeFailure 는 매 접근성 이벤트마다 호출되므로 필수)
+     *  2) 현재 잔액과 차감액 중 작은 값만 차감 → 잔액 음수 불가
+     */
+    private suspend fun applyPenalty(challengeId: Long) {
+        if (penaltyChallengeId == challengeId) return
+        penaltyChallengeId = challengeId
+
+        val currentBalance = ServiceLocator.pointRepository.balance.firstOrNull() ?: 0
+        val deduction = minOf(PENALTY_POINTS, currentBalance)  // 마이너스 통장 방지
+        if (deduction <= 0) return
+
+        ServiceLocator.pointRepository.add(
+            delta = -deduction,
+            reason = "penalty_reentry",
+            challengeId = challengeId,
+        )
+
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                applicationContext,
+                "도파민의 유혹에 넘어갔습니다! ${deduction}포인트가 차감됩니다.",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
@@ -108,5 +146,6 @@ class ShortFormAccessibilityService : AccessibilityService() {
             "com.zhiliaoapp.musically",
             "com.ss.android.ugc.trill",
         )
+        private const val PENALTY_POINTS = 10
     }
 }

@@ -64,6 +64,11 @@ class OverlayService : LifecycleService(), SavedStateRegistryOwner, ViewModelSto
     private var overlayView: View? = null
     private val state = MutableStateFlow(OverlayState())
 
+    // 포인트 이중 적립 방지 플래그
+    private var isPointAcquired = false
+    // 보상 감소 코루틴 — 버튼 클릭 시 즉시 취소하기 위해 참조 보관
+    private var decayJob: kotlinx.coroutines.Job? = null
+
     override fun onCreate() {
         super.onCreate()
         savedStateRegistryController.performAttach()
@@ -124,7 +129,7 @@ class OverlayService : LifecycleService(), SavedStateRegistryOwner, ViewModelSto
      * 그 이후 30초가 더 지나면 자동 종료(시연을 깔끔하게).
      */
     private fun startIgnoreDecay() {
-        lifecycleScope.launch {
+        decayJob = lifecycleScope.launch {
             var idleSecs = 0
             while (true) {
                 kotlinx.coroutines.delay(5_000)
@@ -183,12 +188,34 @@ class OverlayService : LifecycleService(), SavedStateRegistryOwner, ViewModelSto
     }
 
     private fun handleAccept() {
+        // 중복 실행 방지: 빠른 연타 또는 decay 만료와의 레이스 차단
+        if (isPointAcquired) return
+        isPointAcquired = true
+
+        // 보상 감소 타이머 즉시 중단 — 이후 decayJob 콜백이 포인트를 덮어쓰지 않음
+        decayJob?.cancel()
+
         val cur = state.value
         val advice = cur.advice ?: return
+
         lifecycleScope.launch {
+            // ① 버튼 클릭 시점의 포인트를 즉시 적립
+            ServiceLocator.pointRepository.add(
+                delta = cur.currentReward,
+                reason = "challenge_accept",
+                challengeId = null,
+            )
+
+            // ② 백그라운드 카운트다운 타이머 즉시 종료
+            //    TimerService.finishTimer() 가 별도로 포인트를 추가하지 못하도록 막음
+            TimerService.start(applicationContext, TimerService.ACTION_DISMISS)
+
+            // ③ 챌린지 기록 생성 (추적/알림 용도)
+            //    포인트는 ①에서 이미 지급했으므로 rewardPoints = 0 으로 등록해
+            //    ChallengeWorker 가 종료 시점에 동일 포인트를 재적립하지 않도록 함
             val challengeId = ServiceLocator.challengeRepository.createPending(
                 durationMinutes = advice.challengeMinutes,
-                rewardPoints = cur.currentReward,
+                rewardPoints = 0,
                 packages = listOf(
                     "com.instagram.android",
                     "com.google.android.youtube",
@@ -197,11 +224,20 @@ class OverlayService : LifecycleService(), SavedStateRegistryOwner, ViewModelSto
                 ),
             )
             ChallengeWorker.enqueue(applicationContext, challengeId, advice.challengeMinutes)
+
             Toast.makeText(
                 applicationContext,
                 getString(R.string.challenge_started, advice.challengeMinutes),
                 Toast.LENGTH_LONG,
             ).show()
+
+            // 도파민드 홈 화면으로 전환 (다른 앱을 완전히 덮어버림)
+            // CLEAR_TASK: 기존 백스택을 비워 뒤로가기 시 이상한 화면이 나오지 않도록 함
+            val launchHome = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(launchHome)
+
             stopSelf()
         }
     }
@@ -218,6 +254,10 @@ class OverlayService : LifecycleService(), SavedStateRegistryOwner, ViewModelSto
         }
         overlayView = null
         _viewModelStore.clear()
+
+        // 팝업이 어떤 경로로 닫히든(수락/나중에/시스템 종료) 감지 제어 플래그만 리셋.
+        // 누적 포인트(PointRepository DB)는 전혀 건드리지 않음.
+        ServiceLocator.patternAnalyzer.reset()
     }
 
     override fun onBind(intent: Intent): IBinder? {
