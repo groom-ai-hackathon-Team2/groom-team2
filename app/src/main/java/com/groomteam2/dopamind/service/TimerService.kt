@@ -95,6 +95,7 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
             ACTION_START_TIMER -> startTimer()
             ACTION_FINISH -> finishTimer()
             ACTION_EXTEND -> extendTimer()
+            ACTION_EXIT_APP -> exitApp()
             ACTION_DISMISS -> dismissAll()
             else -> showIntro()
         }
@@ -165,10 +166,38 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
                     rewardPoints = reward,
                     onDismiss = { start(applicationContext, ACTION_DISMISS) },
                     onExtend = { start(applicationContext, ACTION_EXTEND) },
+                    onExit = { start(applicationContext, ACTION_EXIT_APP) },
                 )
             }
             completeView = view
             addCenteredCard(view)
+        }
+    }
+
+    /**
+     * "앱 닫기" 액션.
+     * 보던 숏폼 앱을 백그라운드로 보내고(=홈 런처로 이동) 타이머 정리.
+     *
+     * Android 10+ 의 백그라운드 액티비티 시작 제한이 있지만,
+     * TimerService 는 startForeground 로 떠있는 포그라운드 서비스라 홈 런처는 정상 시작됨.
+     */
+    private fun exitApp() {
+        countdownJob?.cancel()
+        removeView(introView); introView = null
+        removeView(bubbleView); bubbleView = null
+        removeView(completeView); completeView = null
+        lifecycleScope.launch {
+            ServiceLocator.userPrefs.setActiveTimerEndAt(0L)
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            try {
+                startActivity(homeIntent)
+            } catch (e: Exception) {
+                // 런처 부재 등 예외는 무시 — 어차피 stopSelf 로 정리.
+            }
+            stopSelf()
         }
     }
 
@@ -373,6 +402,7 @@ class TimerService : LifecycleService(), SavedStateRegistryOwner, ViewModelStore
         const val ACTION_START_TIMER = "com.groomteam2.dopamind.timer.START_TIMER"
         const val ACTION_FINISH = "com.groomteam2.dopamind.timer.FINISH"
         const val ACTION_EXTEND = "com.groomteam2.dopamind.timer.EXTEND"
+        const val ACTION_EXIT_APP = "com.groomteam2.dopamind.timer.EXIT_APP"
         const val ACTION_DISMISS = "com.groomteam2.dopamind.timer.DISMISS"
 
         fun start(context: Context, action: String) {

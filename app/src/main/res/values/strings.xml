@@ -61,6 +61,7 @@
     <string name="timer_complete_title">수고했어요!</string>
     <string name="timer_complete_body">목표 시간을 채웠어요. +%1$d 포인트 획득 🎉</string>
     <string name="timer_complete_extend">5분 연장</string>
+    <string name="timer_complete_exit">앱 닫기</string>
     <string name="timer_complete_dismiss">종료</string>
     <string name="timer_bubble_remaining">남은 시간 %1$s</string>
     <string name="timer_bubble_open_app">도파민드 열기</string>
