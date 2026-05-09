@@ -58,3 +58,69 @@ data class CoachingContext(
     val eventCount: Int,
     val totalPoints: Int,
 )
+
+/**
+ * 홈 화면 'AI 피드백' 카드용 프롬프트.
+ *
+ * 자유 텍스트 응답 (JSON 강제 X). 두 모드 지원:
+ *   - 누적 데이터 있음: 패턴 회고 + 다음 행동 제안
+ *   - 누적 데이터 없음(첫 사용): 직업/일정 기반 환영 + 가장 흔한 함정 안내
+ */
+object FeedbackPrompts {
+
+    val SYSTEM = """
+        너는 '도파민드'라는 디지털 디톡스 앱의 AI 코치다.
+        사용자의 인스타그램·유튜브 숏폼 사용 데이터를 보고 한국어 반말로 다정하게 한 마디 해준다.
+        말투 규칙: 짧고 부드럽게. 잔소리 금지. 칭찬할 부분이 있으면 먼저 칭찬.
+        분량: 2~3 문장, 총 200자 이내. 마크다운/JSON 금지, 일반 텍스트로만 답한다.
+        마지막 문장은 사용자가 오늘/내일 시도할 작은 행동 제안 한 줄로 마무리.
+
+        [모드 분기 — userPrompt 의 isFirstTime 값으로 판단]
+        - isFirstTime=true 면 누적 데이터가 거의 없는 첫 사용자. 일반론 금지. 직업/일정에서
+          위험할 만한 시간대(예: 점심 직후, 야근 후 22시 등)를 1개만 짚어 환영 메시지를 준다.
+        - isFirstTime=false 면 제공된 시간대별 좀비 빈도 / 오늘 성과 / 누적 포인트 중 가장 두드러진
+          1개 수치를 인용해 회고한다.
+    """.trimIndent()
+
+    fun buildUserPrompt(ctx: FeedbackContext): String = buildString {
+        appendLine("[사용자 정보]")
+        appendLine("- 직업: ${ctx.job}")
+        appendLine("- 하루 일정: ${ctx.schedule}")
+        appendLine()
+        appendLine("[모드]")
+        appendLine("- isFirstTime: ${ctx.isFirstTime}")
+        appendLine()
+        appendLine("[누적 통계]")
+        appendLine("- 총 포인트: ${ctx.totalPoints}")
+        appendLine("- 오늘 적립 포인트: ${ctx.earnedToday}")
+        appendLine("- 오늘 챌린지 성공 횟수: ${ctx.successToday}")
+        appendLine()
+        appendLine("[현재 시간대]")
+        appendLine("- 현재 시: ${ctx.currentHour}시 (취약시간 = ${ctx.isVulnerableHourNow})")
+        appendLine()
+        if (ctx.vulnerableScores.any { it > 0f }) {
+            appendLine("[24시간 위험도 점수 — 큰 값일수록 좀비 자주 발생]")
+            ctx.vulnerableScores.forEachIndexed { hour, score ->
+                if (score > 0f) appendLine("  ${hour}시: ${"%.2f".format(score)}")
+            }
+        } else {
+            appendLine("[24시간 위험도] 아직 학습 데이터 없음.")
+        }
+        appendLine()
+        appendLine("위 정보를 보고 시스템 프롬프트의 모드 분기 규칙대로 피드백을 작성해라.")
+    }
+}
+
+/** AI 피드백 카드용 컨텍스트. */
+data class FeedbackContext(
+    val job: String,
+    val schedule: String,
+    val totalPoints: Int,
+    val earnedToday: Int,
+    val successToday: Int,
+    val currentHour: Int,
+    val isVulnerableHourNow: Boolean,
+    val vulnerableScores: List<Float>,
+    /** 누적 데이터가 거의 없는지 여부 — true 면 환영 톤으로 응답. */
+    val isFirstTime: Boolean,
+)
