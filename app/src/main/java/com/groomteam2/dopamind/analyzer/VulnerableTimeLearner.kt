@@ -55,6 +55,22 @@ class VulnerableTimeLearner(
     }
 
     /**
+     * 사용자가 숏폼 앱에서 시간을 보냈음을 기록 (분 단위).
+     * 좀비 판정이 안 떴어도 '오래 머문 시간대'를 학습할 수 있게 추가 신호.
+     * 분 수만큼 점수에 가중치를 더해 EMA 갱신 — 길게 본 시간대일수록 빠르게 위험으로 인식.
+     */
+    fun recordUsage(hour: Int, minutes: Int) {
+        if (minutes <= 0) return
+        val safeHour = hour.coerceIn(0, 23)
+        // 분 수를 0..1 로 정규화 (60분 이상 → 1.0). 30분이면 0.5 신호.
+        val signal = (minutes / 60f).coerceAtMost(1f)
+        val updated = cache[safeHour] * (1f - ALPHA) + signal * ALPHA
+        cache[safeHour] = updated
+        _scoresFlow.value = cache.copyOf()
+        scope.launch { prefs.updateVulnerableScore(safeHour, updated) }
+    }
+
+    /**
      * 현재 시간대가 취약 시간대인지.
      * 점수가 0 보다 큰 시간대들을 정렬해서 상위 25% 컷오프 이상이면 true.
      * (충분한 데이터가 쌓이기 전에는 false 반환 — 보수적 판단)
@@ -72,6 +88,7 @@ class VulnerableTimeLearner(
 
     companion object {
         private const val ALPHA = 0.3f
-        private const val MIN_DATA_POINTS = 4
+        // 조기 적응을 위해 2개 시간대만 데이터 있어도 취약시간 판정 시작.
+        private const val MIN_DATA_POINTS = 2
     }
 }

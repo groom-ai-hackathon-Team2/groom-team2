@@ -1,6 +1,9 @@
 package com.groomteam2.dopamind.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,19 +15,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.ui.platform.LocalContext
-import com.groomteam2.dopamind.service.TimerService
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -61,39 +64,12 @@ fun HomeScreen(
     vm: HomeViewModel = viewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle(initialValue = HomeState())
-    val shortsStats by vm.shortsStatsFlow.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val feedback by vm.feedback.collectAsStateWithLifecycle(initialValue = AIFeedbackState.Empty)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    // 제목 옆에 재생 버튼 — 한 번 종료된 뒤에도 사용자가 다시 타이머를 시작할 수 있도록.
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = {
-                                val running = state.activeTimerEndAt > System.currentTimeMillis()
-                                if (running) {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.home_timer_running),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                } else {
-                                    TimerService.start(context, TimerService.ACTION_SHOW_INTRO)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = stringResource(R.string.home_start_timer),
-                                tint = BrandPurple,
-                            )
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.home_title), fontWeight = FontWeight.Bold)
-                    }
-                },
+                title = { Text(stringResource(R.string.home_title), fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = onOpenPermission) {
                         Icon(Icons.Default.Lock, contentDescription = "권한")
@@ -109,6 +85,7 @@ fun HomeScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             if (state.isVulnerableNow) {
@@ -130,14 +107,211 @@ fun HomeScreen(
                     accent = BrandSuccess,
                 )
             }
+            Spacer(Modifier.height(16.dp))
+            TimerSettingCard(
+                currentMinutes = state.goalTimerMinutes,
+                onSelect = vm::setGoalTimerMinutes,
+            )
+            Spacer(Modifier.height(16.dp))
+            AIFeedbackCard(
+                state = feedback,
+                onRequest = vm::requestFeedback,
+            )
             Spacer(Modifier.height(24.dp))
             Text("시간대별 위험도", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             VulnerableBars(state.vulnerableScores, state.currentHour)
-            Spacer(Modifier.height(24.dp))
-            // 시간대별 위험도 그래프 바로 아래에 숏폼 사용 통계 섹션.
-            ShortsStatsSection(shortsStats)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
+            LearningStatusLine(
+                learnedHours = state.learnedHours,
+                peakHour = state.peakHour,
+            )
+        }
+    }
+}
+
+/**
+ * 24시간 막대 그래프 아래에 한 줄로 표시되는 학습 상태.
+ * 데이터가 없으면 안내, 쌓이면 학습 시간대 수 + 가장 위험한 시간을 강조.
+ */
+@Composable
+private fun LearningStatusLine(learnedHours: Int, peakHour: Int?) {
+    if (learnedHours == 0) {
+        Text(
+            stringResource(R.string.learning_status_empty),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+        )
+    } else {
+        Text(
+            stringResource(R.string.learning_status_progress, learnedHours),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+        )
+        if (peakHour != null) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.learning_status_peak, peakHour),
+                color = BrandWarning,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+/**
+ * Gemini 가 사용자의 숏폼 패턴을 분석해 한국어 자연어로 한 마디 — 명시적 버튼 클릭 시에만 호출.
+ *
+ * 4가지 상태 분기:
+ *  Empty   — 아직 호출 X. 안내 문구 + [피드백 받기]
+ *  Loading — 호출 진행. 스피너 + "분석 중…"
+ *  Ready   — 응답 수신. 본문 + [다시 받기]
+ *  Error   — 실패. 에러 메시지 + [다시 받기]
+ */
+@Composable
+private fun AIFeedbackCard(
+    state: AIFeedbackState,
+    onRequest: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(BrandPurple)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("🤖 AI", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.ai_feedback_title),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.ai_feedback_caption),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            when (state) {
+                AIFeedbackState.Empty -> {
+                    Text(
+                        stringResource(R.string.ai_feedback_empty_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onRequest,
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandPurple),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(R.string.ai_feedback_request),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                AIFeedbackState.Loading -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.width(20.dp).height(20.dp),
+                            strokeWidth = 2.dp,
+                            color = BrandPurple,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.ai_feedback_loading),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                is AIFeedbackState.Ready -> {
+                    Text(
+                        state.text,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onRequest,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.ai_feedback_refresh)) }
+                }
+                is AIFeedbackState.Error -> {
+                    Text(
+                        stringResource(R.string.ai_feedback_error),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onRequest,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.ai_feedback_refresh)) }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 사용자가 인스타/유튜브에 진입할 때 사용할 목표 시간을 분 단위로 선택.
+ * 칩 그룹: 1, 5, 15, 30, 60 분 — 선택 시 즉시 DataStore 에 저장.
+ */
+@Composable
+private fun TimerSettingCard(
+    currentMinutes: Int,
+    onSelect: (Int) -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                stringResource(R.string.timer_setting_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.timer_setting_caption),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                listOf(1, 5, 15, 30, 60).forEach { m ->
+                    val selected = m == currentMinutes
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) BrandPurple else Color.White.copy(alpha = 0.08f))
+                            .clickable { onSelect(m) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.timer_minutes_format, m),
+                            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
         }
     }
 }

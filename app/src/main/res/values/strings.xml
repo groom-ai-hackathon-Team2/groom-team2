@@ -7,7 +7,8 @@
     <string name="accessibility_service_label">도파민드 코치</string>
     <string name="accessibility_service_description">
         인스타그램·유튜브 숏폼의 스크롤 패턴을 분석해, 도파민 좀비 상태가 의심될 때
-        AI 코치가 화면 위에 휴식 챌린지를 제안합니다. 화면 내용은 수집하지 않습니다.
+        AI 코치가 화면 위에 휴식 챌린지를 제안합니다. 일반 영상 목록은 카운트하지 않도록
+        Shorts/Reels 탭 상태만 확인합니다. 영상·댓글 등 콘텐츠 텍스트는 수집하지 않습니다.
     </string>
 
     <!-- 온보딩 -->
@@ -28,8 +29,6 @@
 
     <!-- 홈 -->
     <string name="home_title">도파민드</string>
-    <string name="home_start_timer">타이머 시작</string>
-    <string name="home_timer_running">이미 타이머가 동작 중이에요</string>
     <string name="home_points">현재 포인트</string>
     <string name="home_today_alerts">오늘 받은 코칭</string>
     <string name="home_today_resisted">오늘 참은 횟수</string>
@@ -50,8 +49,6 @@
     <string name="challenge_failed">아쉬워요. 챌린지 실패 😭</string>
     <string name="challenge_succeeded">잘했어요! +%1$d 포인트 획득 🎉</string>
 
-<<<<<<< Updated upstream
-=======
     <!-- 앱 타이머 -->
     <string name="timer_setting_title">앱 타이머 목표 시간</string>
     <string name="timer_setting_caption">인스타·유튜브 진입 시 이 시간만큼 카운트다운합니다</string>
@@ -63,6 +60,7 @@
     <string name="timer_complete_title">수고했어요!</string>
     <string name="timer_complete_body">목표 시간을 채웠어요. +%1$d 포인트 획득 🎉</string>
     <string name="timer_complete_extend">5분 연장</string>
+    <string name="timer_complete_exit">앱 닫기</string>
     <string name="timer_complete_dismiss">종료</string>
     <string name="timer_bubble_remaining">남은 시간 %1$s</string>
     <string name="timer_bubble_open_app">도파민드 열기</string>
@@ -70,30 +68,22 @@
     <string name="timer_fg_title">앱 타이머 동작 중</string>
     <string name="timer_fg_body">목표 시간까지 카운트다운 중이에요</string>
 
-    <!-- 숏폼 사용 통계 (홈 화면 섹션) -->
-    <string name="shorts_stats_title">숏폼 사용 통계</string>
-    <string name="shorts_stats_empty">아직 측정된 사용 기록이 없어요</string>
-    <string name="shorts_stats_view_count_title">시청한 숏츠</string>
-    <string name="shorts_stats_view_count_value">오늘 %1$d개 / 누적 %2$d개</string>
-    <string name="shorts_stats_view_count_breakdown">인스타 %1$d · 유튜브 %2$d · 틱톡 %3$d</string>
-    <string name="shorts_stats_watch_time_title">숏폼 시청 시간</string>
-    <string name="shorts_stats_watch_time_today">오늘 %1$s</string>
-    <string name="shorts_stats_watch_time_week">이번 주 %1$s</string>
-    <string name="shorts_stats_watch_time_delta_up">어제 대비 +%1$d%%</string>
-    <string name="shorts_stats_watch_time_delta_down">어제 대비 -%1$d%%</string>
-    <string name="shorts_stats_watch_time_delta_zero">어제와 비슷</string>
-    <string name="shorts_stats_avg_interval_title">평균 스크롤 간격</string>
-    <string name="shorts_stats_avg_interval_value">평균 %1$.1f초</string>
-    <string name="shorts_stats_avg_interval_caption">800ms 미만 = 좀비 판정</string>
-    <string name="shorts_stats_avg_interval_none">측정된 간격이 없어요</string>
-    <string name="shorts_stats_top_hours_title">주요 취약 시간 Top 3</string>
-    <string name="shorts_stats_top_hours_row">%1$s %2$d시-%3$d시 (%4$d회)</string>
-    <string name="shorts_stats_top_hours_avg_min">평균 %1$d분 시청</string>
-    <string name="shorts_stats_minutes">%1$d분</string>
-    <string name="shorts_stats_hours_minutes">%1$d시간 %2$d분</string>
+    <!-- AI 피드백 -->
+    <string name="ai_feedback_title">AI 피드백</string>
+    <string name="ai_feedback_caption">너의 숏폼 사용 패턴을 보고 한 마디 해줄게</string>
+    <string name="ai_feedback_request">피드백 받기</string>
+    <string name="ai_feedback_refresh">다시 받기</string>
+    <string name="ai_feedback_loading">분석 중…</string>
+    <string name="ai_feedback_empty_hint">아직 받은 피드백이 없어요. 버튼을 눌러보세요.</string>
+    <string name="ai_feedback_error">피드백을 받지 못했어요. 잠시 후 다시 시도해주세요.</string>
 
->>>>>>> Stashed changes
+    <!-- AI 학습 진행 -->
+    <string name="learning_status_empty">AI가 너의 패턴을 학습할 준비를 하고 있어. 곧 시간대별 위험도가 나타날 거야.</string>
+    <string name="learning_status_progress">AI 학습 중 · %1$d개 시간대 데이터 누적</string>
+    <string name="learning_status_peak">가장 위험한 시간: %1$d시 (보상 3배 적용)</string>
+
     <!-- 알림 채널 -->
     <string name="notif_channel_overlay">코치 오버레이</string>
     <string name="notif_channel_challenge">챌린지 진행</string>
+    <string name="notif_channel_timer">앱 타이머</string>
 </resources>
