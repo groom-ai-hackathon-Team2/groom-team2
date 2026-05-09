@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/kimho/.gradle/jdks//**)",
-      "Read(//c/Program Files/Android/Android Studio/jbr/bin//**)"
-    ]
-  }
-}

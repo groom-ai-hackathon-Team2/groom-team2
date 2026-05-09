@@ -47,10 +47,6 @@ class ShortFormAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 숏폼 사용 통계 컬렉터 — ScrollEventBus 의 또 다른 구독자라
-        // PatternAnalyzer 동작에 영향 없이 View/Session 로그만 추가로 적재.
-        ServiceLocator.shortsStatsCollector.start(scope)
-
         // 활성 챌린지가 있을 때 대상 앱이 다시 떠오르면 실패 처리.
         challengeWatchJob?.cancel()
         challengeWatchJob = scope.launch {
